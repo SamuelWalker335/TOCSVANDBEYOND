@@ -11,6 +11,8 @@ from tkinter import filedialog
 import pdfplumber
 import pandas as pd
 
+import subprocess
+
 filename = "test "
 # Function for opening the 
 # file explorer window
@@ -24,7 +26,11 @@ def browseFiles():
 														"*.*")))
 	
 	# Change label contents
-	label_file_explorer.configure(text="File Opened: " + filename)
+	if(filename != ""):
+		label_file_explorer.configure(text=filename)
+	else:
+		label_file_explorer.configure(text="Select a file")
+
 
 def remove_until_slash(input_string):
     # Find the last occurrence of '/'
@@ -45,7 +51,6 @@ def convertToCSV():
 	for i in range(len(pdf.pages)):
 		page = pdf.pages[i]
 		tables = page.extract_tables()
-		
 		for j in range(len(tables)):
 			if( len(tables[j][0]) == len(df.columns)):
 				# storing as dataframe from every table from 0 index including header!!!
@@ -54,7 +59,8 @@ def convertToCSV():
 				df = pd.concat([df, each_page_data], ignore_index=True)
 	
 	df.to_csv(outputName)
-	
+	label_file_explorer.configure(text = "File Converted!")
+	subprocess.Popen(r'explorer /select, ' "\"" + outputName.replace('/', '\\') + "\"")
 	
 
 
@@ -70,24 +76,41 @@ window.title('Pdf Converter')
 
 
 #Set window background color
-window.config(background = "white")
+window.config(	background = "ivory3",
+				padx= 10, pady = 10
+			  )
 
 # Create a File Explorer label
 label_file_explorer = Label(window, 
-							text = "convert pdf files to csv",
-							width = 50, height = 4, 
-							fg = "blue")
+							text = "Select a File",
+							width = 50, height = 4,
+							font= ("consola", 10),
+							bg = "ivory2", fg = "black")
+
+button_explore = Button(window,
+						text = "Browse Files",
+						width= 10, height= 3,
+						font= ("consola", 10),
+						bg= "spring green", fg = "black",
+						command = browseFiles)
+
+label_output_name = Label(window,
+						text= "Output Name: ",
+						width= 10, height= 1,
+						font= ("consola", 10),
+						bg = "ivory2",fg= "black")
 
 inputtxt = Text(window,
-                height = 1, 
-                width = 20) 
+				width = 45, height = 1, 
+            	font= ("consola", 10),
+				) 
 	
-button_explore = Button(window, 
-						text = "Browse Files",
-						command = browseFiles) 
 
 button_convert = Button(window, 
-						text = "convert",
+						text = "Export",
+						width= 10, height= 3,
+						font= ("consola", 10),
+						bg= "spring green", fg = "black",
 						command = convertToCSV) 
 
 
@@ -95,13 +118,15 @@ button_convert = Button(window,
 # the widgets at respective positions 
 # in a table like structure by
 # specifying rows and columns
-label_file_explorer.pack()
+label_file_explorer.grid(row = 0, column= 0, columnspan= 1)
 
-inputtxt.pack()
+button_explore.grid(row = 0, column= 1, columnspan= 1, sticky= W, padx=10)
 
-button_explore.pack()
+label_output_name.grid(row = 2, column= 0, columnspan= 1, sticky= W,pady=10)
 
-button_convert.pack()
+inputtxt.grid(row = 2, column= 0, columnspan= 1, sticky= E)
+
+button_convert.grid(row = 4, column= 0, columnspan= 2)
 
 # Let the window wait for any events
 window.mainloop()
