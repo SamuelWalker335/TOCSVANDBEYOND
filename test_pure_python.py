@@ -40,7 +40,6 @@ def remove_until_slash(input_string):
 
 def convertToCSV():
 	outputName = remove_until_slash(filename) + inputtxt.get(1.0, "end-1c") + ".csv"
-	print(outputName)
 	filePath = filename 
 	pdf = pdfplumber.open(filePath)
 	#find columns for table
@@ -58,7 +57,7 @@ def convertToCSV():
 				# Adding each df to main df by using concat (Eg :sum of numbers in array)
 				df = pd.concat([df, each_page_data], ignore_index=True)
 	
-	df.to_csv(outputName)
+	df.to_csv(outputName, index = False)
 	label_file_explorer.configure(text = "File Converted!")
 	subprocess.Popen(r'explorer /select, ' "\"" + outputName.replace('/', '\\') + "\"")
 	
