@@ -1,21 +1,14 @@
-# Python program to create 
-# a file explorer in Tkinter
+#A python program to convert tables from pdf files to csv format
 
-# import all components
-# from the tkinter library
 from tkinter import *
-
-# import filedialog module
 from tkinter import filedialog
-
 import pdfplumber
 import pandas as pd
-
 import subprocess
 
 filename = "test "
 # Function for opening the 
-# file explorer window
+# open file explorer window
 def browseFiles():
 	global filename 
 	filename = filedialog.askopenfilename(initialdir = "/",
@@ -35,31 +28,71 @@ def browseFiles():
 def remove_until_slash(input_string):
     # Find the last occurrence of '/'
     slash_index = input_string.rfind('/')
-    # Return the substring after the last '/'
+    # Return the substring before the last '/'
     return input_string[:slash_index + 1] if slash_index != -1 else input_string
 
+#open table using pdf plumber
 def convertToCSV():
+	#get the location of og file, append the input text line and add the .csv
 	outputName = remove_until_slash(filename) + inputtxt.get(1.0, "end-1c") + ".csv"
 	filePath = filename 
 	pdf = pdfplumber.open(filePath)
-	#find columns for table
-	page0 = pdf.pages[0]
-	table = page0.extract_table()
-	df = pd.DataFrame(columns = table[0])
-	#loop through pages and add the tables together into one dataframe
+	
+	
+
+	#create a list of alll the different table sizes
+	tableSizes = []
+	#loop through all the pages
 	for i in range(len(pdf.pages)):
 		page = pdf.pages[i]
 		tables = page.extract_tables()
+		#loop through all the tables
 		for j in range(len(tables)):
-			if( len(tables[j][0]) == len(df.columns)):
-				# storing as dataframe from every table from 0 index including header!!!
-				each_page_data = pd.DataFrame(tables[j][0:], columns=df.columns) 
-				# Adding each df to main df by using concat (Eg :sum of numbers in array)
-				df = pd.concat([df, each_page_data], ignore_index=True)
+			#if the table size is not in the list, append to list
+			if(len(tables[j][0]) not in tableSizes):
+				tableSizes.append(len(tables[j][0]))
+
+	#create a dataframe for each table column size
+	dfs = []
+	for i in range(len(tableSizes)):
+		newColumns = [None] * tableSizes[i]
+		dfNew = pd.DataFrame(columns = newColumns)
+		dfs.append(dfNew)	
+		
+
+	#loop through pages
+	for i in range(len(pdf.pages)):
+		page = pdf.pages[i]
+		tables = page.extract_tables()
+		#loop through tables
+		for j in range(len(tables)):
+			#if the first dataframe has the right number of columns for current table
+			if( len(tables[j][0]) == len(dfs[0].columns)):
+				#store the table as a data frame
+				each_page_data = pd.DataFrame(tables[j][0:], columns=dfs[0].columns) 
+				#and append it to the first dataframe in the list
+				dfs[0] = pd.concat([dfs[0], each_page_data], ignore_index=True)
+			#else: as long as the table columns are greater than 0
+			elif(len(tables[j][0]) > 0):
+				#loop through all the data frames
+				for o in range(len(dfs)):
+					#check if the current dataframe has the right number of columns
+					if(len(dfs[o].columns) == len(tables[j][0])):
+						#create a dataframe from the new table
+						each_page_data = pd.DataFrame(tables[j][0:], columns=dfs[o].columns)
+						#and append it to the correct dataframe
+						dfs[o] = pd.concat([dfs[o], each_page_data], ignore_index=True)
+						#no need to continue searching the dataframes
+						break 
 	
-	df.to_csv(outputName, index = False)
+	#run through the multiple data frames and write to csv
+	with open(outputName,'w') as f:
+		for df in dfs:
+			df.to_csv(f, index = False, lineterminator = '\n')
+
+	#change text to file converted and open the windows explorer on the converted file
 	label_file_explorer.configure(text = "File Converted!")
-	subprocess.Popen(r'explorer /select, ' "\"" + outputName.replace('/', '\\') + "\"")
+	f = subprocess.Popen(r'explorer /select, ' "\"" + outputName.replace('/', '\\') + "\"")
 	
 
 
@@ -86,6 +119,7 @@ label_file_explorer = Label(window,
 							font= ("consola", 10),
 							bg = "ivory2", fg = "black")
 
+#opens the file explorer to select a file
 button_explore = Button(window,
 						text = "Browse Files",
 						width= 10, height= 3,
@@ -93,18 +127,21 @@ button_explore = Button(window,
 						bg= "spring green", fg = "black",
 						command = browseFiles)
 
+#label for text box
 label_output_name = Label(window,
 						text= "Output Name: ",
 						width= 10, height= 1,
 						font= ("consola", 10),
 						bg = "ivory2",fg= "black")
 
+#text input box for the file output name
 inputtxt = Text(window,
 				width = 45, height = 1, 
             	font= ("consola", 10),
 				) 
 	
 
+#button that calls convert to csv
 button_convert = Button(window, 
 						text = "Export",
 						width= 10, height= 3,
